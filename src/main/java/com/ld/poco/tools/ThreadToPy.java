@@ -6,6 +6,7 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.*;
 
 
@@ -23,37 +24,49 @@ public class ThreadToPy {
 //        2.跑完之后检查失败项是否为空
 //        3.启动makehtml启动javaweb服务（如何编译打包）
 //        4.尝试使用数据库，就不用编译打包了，直接html读取库文件
-        //获取当前文件路径
-        File dumpFile = new File(System.getProperty("user.dir") + "\\src\\main\\java\\com\\pocotools\\caes.yml");
+        //获取当前文件路径     D:\AirtestObject\springboot-html\src\main\java\com\ld\poco\tools\caes.yml
+        File dumpFile = new File(System.getProperty("user.dir") + "\\src\\main\\java\\com\\ld\\poco\\tools\\caes.yml");
         OPTIONS.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         Yaml yaml = new Yaml(OPTIONS);
-
         LinkedHashMap<String, Object> dataMap = (LinkedHashMap<String, Object>) yaml.load(new FileReader(dumpFile));
         MyRunThread myRunThread = new MyRunThread();
         ArrayList list = (ArrayList) dataMap.get("case_keys");//需要跑的项
         myRunThread.GoRun(list);
-//遍历上面的线程列表，等里面所有线程都执行完，才执行
-        System.out.println("11111111111111");
+        //遍历上面的线程列表，等里面所有线程都执行完，才执行
         ArrayList list2 = (ArrayList) dataMap.get("case_keys2");//失败项
         if (list2 != null) {
             myRunThread.GoRun(list2);
         }
-            //等待上面线程都执行完，再执行makehtml方法
-            //调用py的makeHTML方法
-        }
+        //等待上面线程都执行完，再执行makehtml方法
+        //调用py的makeHTML方法 todo
+
+        //清理文件poco池
+        String filePath = "D:\\poco_list_file";
+        DelFile delFile = new DelFile();
+        delFile.DelTheFlie(filePath);
     }
+
+}
 
 
 class Processor extends Thread {
     public void run() {
 //        这里调用python，去运行方法
-        System.out.println("helloworld");
+
+
+        Process proc;
+
+//    {
         try {
-            sleep(10000);
-        } catch (InterruptedException e) {
+            proc = Runtime.getRuntime().exec("C:\\Users\\v.lidd\\AppData\\Local\\Programs\\Python\\Python37\\python.exe D:\\Tools\\test.py");
+            try {
+                proc.waitFor();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("end");
     }
 }
 
@@ -62,17 +75,40 @@ class MyRunThread {
         int length = list.size();
         //创建一个数组，把所以线程对象放进去
         Thread tho[] = new Thread[length];
+        //启动多个线程
         for (int i = 0; i < length; i++) {
-
             tho[i] = new Processor();
             tho[i].setName("t" + i);//给线程起名
             tho[i].start();//系统线程启动后自动调用run方
         }
+        //遍历多个线程，等带所有线程执行完毕
         for (int i = 0; i < length; i++) {
             try {
                 tho[i].join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
+            }
+        }
+    }
+}
+
+class DelFile {
+    public void DelTheFlie(String filePath)
+
+    {
+//        String filePath = "D:\\poco_list_file";
+        File file = new File(filePath);
+        if (file.exists()) {
+            File[] filePaths = file.listFiles();
+            for (File f : filePaths) {
+                if (f.isFile()) {
+                    f.delete();
+                }
+                if (f.isDirectory()) {
+                    String fpath = f.getPath();
+                    DelTheFlie(fpath);
+                    f.delete();
+                }
             }
         }
     }
